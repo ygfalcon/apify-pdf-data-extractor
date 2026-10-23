@@ -1,3 +1,4 @@
+import { accountHolder } from './holder.js';
 import { isDateToken, parseDate, parsePeriod } from '../lib/dates.js';
 import { findMoney, isMoneyToken, parseMoneyToken, round2 } from '../lib/money.js';
 
@@ -219,22 +220,13 @@ function checkNumberOf(line, columns) {
 function identityOf(lines) {
   const top = lines.filter((l) => l.page === 1).slice(0, 18);
   let bank = null;
-  let holder = null;
   for (const line of top) {
     const t = line.text.trim();
     if (!bank && /bank|credit union|n\.a\.|trust company/i.test(t) && !/statement|account|period|balance|number/i.test(t)) {
       bank = t;
     }
   }
-  for (const line of top) {
-    const t = line.text.trim();
-    if (t === bank) continue;
-    if (/\b(LLC|L\.L\.C|INC|CORP|LTD|LLP|COMPANY|DBA)\b/i.test(t) && t.length < 80) {
-      holder = t;
-      break;
-    }
-  }
-  return { bank, holder };
+  return { bank, holder: accountHolder(lines, bank) };
 }
 
 function accountLast4(text) {

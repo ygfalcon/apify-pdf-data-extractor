@@ -18,7 +18,7 @@ You're charged only for successful extractions. Failed downloads, non-PDFs and s
 ## Bank statement summary
 Each statement item includes a `summary` block:
 
-- bank, account holder, account last 4, period
+- bank, account holder, account last 4, period. The holder is read from the page-1 header only. Lines that contain a date or an amount are ignored, and the field is null when that header does not contain one clear name.
 - opening and closing balances, deposit and withdrawal totals
 - **true revenue**: credits, excluding internal transfers, loan proceeds (MCA funding, cash advances, line-of-credit draws), and reversals of loan or MCA payments
 - average daily balance, lowest balance, negative-balance days

@@ -1,0 +1,8 @@
+{
+  "_note": "Reference for Apify Console > Publication > Monetization > Pay per event. Apify reads pricing from the Console, not this file. Keep the Actor private until billing is set up.",
+  "pricingModel": "PAY_PER_EVENT",
+  "events": [
+    { "eventName": "document", "title": "Document extracted", "description": "One PDF (invoice, receipt, PO, W-9 or other) extracted to structured fields with confidence scores.", "priceUsd": 0.03 },
+    { "eventName": "bank-statement", "title": "Bank statement analyzed", "description": "One bank statement: all transactions plus ADB, NSF/overdraft, MCA/loan positions, monthly revenue and integrity flags.", "priceUsd": 0.25 }
+  ]
+}

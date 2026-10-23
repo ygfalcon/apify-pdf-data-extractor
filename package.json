@@ -1,0 +1,12 @@
+{
+  "name": "apify-pdf-data-extractor",
+  "version": "1.0.0",
+  "description": "Apify Actor: no-template PDF extraction (invoices, receipts, POs, W-9s) and bank statement analysis.",
+  "type": "module",
+  "main": "src/main.js",
+  "engines": { "node": ">=20" },
+  "scripts": { "start": "node src/main.js", "test": "node --test test/" },
+  "dependencies": { "apify": "^3.4.0" },
+  "license": "MIT",
+  "repository": "github:ygfalcon/apify-pdf-data-extractor"
+}

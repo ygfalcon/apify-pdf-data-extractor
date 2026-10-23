@@ -1,0 +1,11 @@
+{
+  "title": "PDF Data Extractor input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "pdfUrls": { "title": "PDF URLs", "type": "array", "description": "Public URLs of digital (text-based) PDFs. Scanned image-only PDFs are skipped and not charged.", "editor": "stringList", "prefill": ["https://falcondocs.vercel.app/samples/bank-statement.pdf", "https://falcondocs.vercel.app/samples/invoice.pdf"] },
+    "mode": { "title": "Mode", "type": "string", "editor": "select", "description": "extract = any document, auto-detected. bank_statement = transactions + underwriting metrics. preview = page 1 only, free.", "enum": ["extract", "bank_statement", "preview"], "enumTitles": ["Extract any document ($0.03 / document)", "Bank statement analysis ($0.25 / statement)", "Preview page 1 (free)"], "default": "extract" },
+    "documentType": { "title": "Document type (extract mode)", "type": "string", "editor": "select", "description": "Leave on auto to detect it.", "enum": ["auto", "invoice", "receipt", "purchase_order", "w9", "bank_statement", "generic"], "default": "auto" }
+  },
+  "required": ["pdfUrls"]
+}

@@ -5,9 +5,18 @@
   "description": "Extract structured data from PDF invoices, receipts, purchase orders, W-9s and bank statements, with no templates. Bank-statement mode returns every transaction plus average daily balance, NSFs, MCA/loan positions, monthly revenue and tamper flags. Pay per document.",
   "version": "1.0",
   "buildTag": "latest",
-  "meta": { "templateId": "js-empty" },
+  "meta": {
+    "templateId": "js-empty"
+  },
   "input": "./input_schema.json",
   "dockerfile": "../Dockerfile",
   "readme": "../README.md",
-  "environmentVariables": {}
+  "environmentVariables": {},
+  "output": "./output_schema.json",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  },
+  "defaultMemoryMbytes": 512,
+  "minMemoryMbytes": 512,
+  "maxMemoryMbytes": 2048
 }

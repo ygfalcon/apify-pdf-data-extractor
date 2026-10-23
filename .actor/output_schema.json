@@ -1,0 +1,19 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Extracted PDF data",
+  "description": "Where this Actor stores its output.",
+  "properties": {
+    "results": {
+      "type": "string",
+      "title": "Results (dataset items)",
+      "description": "One row per PDF with structured fields, confidence scores, and for bank statements the transactions and underwriting metrics.",
+      "template": "{{links.apiDefaultDatasetUrl}}/items"
+    },
+    "summary": {
+      "type": "string",
+      "title": "Run summary",
+      "description": "SUMMARY record with counts of requested, succeeded, failed and charged documents.",
+      "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/SUMMARY"
+    }
+  }
+}

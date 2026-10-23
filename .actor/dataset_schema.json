@@ -1,0 +1,73 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "type": "object",
+    "properties": {
+      "sourceUrl": {
+        "type": "string",
+        "description": "URL of the PDF that was processed."
+      },
+      "document_type": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Detected type: invoice, receipt, purchase_order, w9, bank_statement, other."
+      },
+      "pages": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "description": "Page count of the PDF."
+      },
+      "error": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Error message if extraction failed (failed items are not charged)."
+      },
+      "charged": {
+        "type": [
+          "boolean",
+          "null"
+        ],
+        "description": "false on failed items, which are never billed."
+      }
+    },
+    "additionalProperties": true
+  },
+  "views": {
+    "overview": {
+      "title": "Overview",
+      "transformation": {
+        "fields": [
+          "sourceUrl",
+          "document_type",
+          "pages",
+          "error"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "sourceUrl": {
+            "label": "PDF",
+            "format": "link"
+          },
+          "document_type": {
+            "label": "Type"
+          },
+          "pages": {
+            "label": "Pages",
+            "format": "number"
+          },
+          "error": {
+            "label": "Error"
+          }
+        }
+      }
+    }
+  }
+}

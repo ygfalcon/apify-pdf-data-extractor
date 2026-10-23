@@ -6,7 +6,7 @@
     "results": {
       "type": "string",
       "title": "Results (dataset items)",
-      "description": "One row per PDF with structured fields, confidence scores, and for bank statements the transactions and underwriting metrics.",
+      "description": "One row per PDF. Bank statements include transactions, a summary block, pass/fail reconciliation, true revenue, and MCA positions.",
       "template": "{{links.apiDefaultDatasetUrl}}/items"
     },
     "summary": {

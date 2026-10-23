@@ -1,7 +1,5 @@
 import { Actor, log } from 'apify';
-import { extractDocument } from './engine.js';
-
-const EVENTS = { extract: 'document', bank_statement: 'bank-statement' };
+import { chargeEvent, extractDocument, isBillable } from './extract.js';
 const MAX = 4 * 1024 * 1024 * 4; // 16 MB per file on Apify
 
 await Actor.init();
@@ -31,10 +29,11 @@ for (const url of sources) {
         const buf = await fetchPdf(url);
         const type = mode === 'bank_statement' ? 'auto' : docType;
         const r = await extractDocument(buf, { mode: mode === 'preview' ? 'preview' : 'full', type: type === 'auto' ? undefined : type });
-        if (r.vision_error || r.error) throw new Error(r.note || r.vision_error || r.error);
+        if (!isBillable(r)) throw new Error(r.note || r.vision_error || r.error || 'Extraction failed');
         const item = { sourceUrl: url, ...r };
-        if (mode !== 'preview') {
-            const c = await Actor.charge({ eventName: mode === 'bank_statement' && r.document_type !== 'bank_statement' ? 'document' : EVENTS[mode], count: 1 });
+        const eventName = chargeEvent(mode, r.document_type);
+        if (eventName) {
+            const c = await Actor.charge({ eventName, count: 1 });
             stats.charged += c?.chargedCount ?? 0;
             if (c?.eventChargeLimitReached && !(c?.chargedCount > 0)) { stats.stoppedByBudget = true; break; }
             if (c?.eventChargeLimitReached) stats.stoppedByBudget = true;

@@ -34,6 +34,27 @@
           "null"
         ],
         "description": "false on failed items, which are never billed."
+      },
+      "reconciliation_status": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Bank statement reconciliation: pass, fail, or incomplete."
+      },
+      "true_revenue": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "description": "Credits excluding internal transfers and loan proceeds, including MCA funding."
+      },
+      "average_daily_balance": {
+        "type": [
+          "number",
+          "null"
+        ],
+        "description": "Average end-of-day balance across the statement period."
       }
     },
     "additionalProperties": true
@@ -61,6 +82,45 @@
           },
           "pages": {
             "label": "Pages",
+            "format": "number"
+          },
+          "error": {
+            "label": "Error"
+          }
+        }
+      }
+    },
+    "statements": {
+      "title": "Bank statement summary",
+      "transformation": {
+        "fields": [
+          "sourceUrl",
+          "document_type",
+          "reconciliation_status",
+          "true_revenue",
+          "average_daily_balance",
+          "error"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "sourceUrl": {
+            "label": "PDF",
+            "format": "link"
+          },
+          "document_type": {
+            "label": "Type"
+          },
+          "reconciliation_status": {
+            "label": "Reconciled"
+          },
+          "true_revenue": {
+            "label": "True revenue",
+            "format": "number"
+          },
+          "average_daily_balance": {
+            "label": "Avg daily balance",
             "format": "number"
           },
           "error": {

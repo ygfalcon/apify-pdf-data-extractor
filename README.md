@@ -1,6 +1,6 @@
 # 📄 PDF Data Extractor: Invoices, W-9s & Bank Statements
 
-**Drop in a PDF URL, get clean JSON back.** Invoices, receipts, purchase orders, W-9s and bank statements, with no templates to build and no OCR guesswork. Bank-statement mode goes further: every transaction categorized, a pass/fail reconciliation, true revenue, and MCA positions with missed and bounced payments, all for **$0.25 per statement**.
+**Drop in a PDF URL, get clean JSON back.** Invoices, receipts, purchase orders, W-9s and bank statements, with no templates to build and no OCR guesswork. Bank-statement mode goes further: every transaction categorized, a pass/fail reconciliation, true revenue, and MCA positions with missed and bounced payments, all for **$0.24 per statement**.
 
 ## 🎯 Who it's for
 - **MCA, small-business and alternative lenders** who need underwriting numbers from bank statements in seconds instead of hand-keying them
@@ -71,8 +71,8 @@ This came from running the actor locally on the sample bank statement above. It 
 ## 💵 Pricing, in plain English
 | Mode | What you get | Price |
 |---|---|---|
-| `extract` | Any digital document, type auto-detected, structured fields | **$0.03 per document** |
-| `bank_statement` | All transactions + underwriting summary | **$0.25 per statement** (non-statements in the same batch are billed as $0.03 documents) |
+| `extract` | Any digital document, type auto-detected, structured fields | **$0.029 per document** (a bank statement gets the full analysis and is billed as a $0.24 statement) |
+| `bank_statement` | All transactions + underwriting summary | **$0.24 per statement** (non-statements in the same batch are billed as $0.029 documents) |
 | `preview` | Page 1 only | **Free** |
 
 You're charged only for successful extractions. 100 bank statements cost $25, and 1,000 invoices cost $30. Platform usage is included in the per-event price.

@@ -7,9 +7,10 @@ test('pay-per-event prices and event names stay unchanged', () => {
   const pricing = JSON.parse(readFileSync(new URL('../.actor/pricing.json', import.meta.url), 'utf8'));
   const byName = Object.fromEntries(pricing.events.map((e) => [e.eventName, e.priceUsd]));
   assert.equal(pricing.pricingModel, 'PAY_PER_EVENT');
-  assert.equal(byName.document, 0.03);
-  assert.equal(byName['bank-statement'], 0.25);
+  assert.equal(byName.document, 0.029);
+  assert.equal(byName['bank-statement'], 0.24);
   assert.equal(chargeEvent('extract', 'invoice'), 'document');
+  assert.equal(chargeEvent('extract', 'bank_statement'), 'bank-statement');
   assert.equal(chargeEvent('bank_statement', 'bank_statement'), 'bank-statement');
   assert.equal(chargeEvent('bank_statement', 'invoice'), 'document');
   assert.equal(chargeEvent('preview', 'bank_statement'), null);

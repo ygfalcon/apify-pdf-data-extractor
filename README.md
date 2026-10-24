@@ -9,12 +9,12 @@
 - **Developers and AI agents** that need a cheap PDF-to-JSON step behind an API
 
 ## 🚀 Why this beats the alternatives
-- ✅ **Reconciliation you can trust.** A statement passes only when the printed summary totals *and* every running balance row match the extracted transactions. A mismatch tells you right away that the extraction or the document is off.
+- ✅ **Reconciliation you can trust.** A statement passes when the printed summary totals match the extracted transactions. When a running balance is printed, every row has to match too. A mismatch tells you right away that the extraction or the document is off.
 - 💰 **True revenue, computed for you.** Internal transfers, loan and MCA funding, cash advances, line-of-credit draws and reversed loan payments are stripped out.
 - 🏦 **MCA stacking detection.** Positions are found from a named-lender list *and* from recurring equal debits (four or more), with monthly debt service, holdback, missed weekday pulls and bounced payments.
 - 🗂️ **102 transaction categories** in groups such as revenue, payroll, financing in and out, and NSF fees.
 - 🕵️ **Tamper flags.** Editing-software metadata, a file modified long after it was created, unusual font counts and many round-dollar deposits are flagged.
-- 🧾 **Invoice math checks.** Quantity × unit price, line items vs. subtotal, and subtotal − discount + tax vs. total each come back `pass`, `fail` or `incomplete`.
+- 🧾 **Invoice math checks.** Quantity × unit price, line items vs. subtotal, and subtotal − discount + shipping + tax vs. total each come back `pass`, `fail` or `incomplete`.
 - 🆓 **Pay only for results.** Failed downloads, non-PDFs, blank W-9s and scanned image-only PDFs cost nothing. Preview mode is free.
 - ⚡ **Fast and text-layer native.** It reads the PDF's embedded text directly, with no OCR step to drift on fonts or image quality.
 
@@ -91,7 +91,7 @@ You're charged only for successful extractions. 100 bank statements cost $25, an
 - **True revenue** with a breakdown of what was excluded
 - Average daily balance, lowest balance, negative-balance days
 - NSF, overdraft and returned-item count and fees
-- **`reconciliation_status`**: `pass`, `fail` or `incomplete`. It is two checks: (1) the printed summary totals match the extracted transactions, and (2) each printed running balance equals the previous balance plus that row. Statements with no running balance are `incomplete` and can't pass.
+- **`reconciliation_status`**: `pass`, `fail` or `incomplete`. It is two checks: (1) the printed summary totals match the extracted transactions, and (2) each printed running balance equals the previous balance plus that row. The statement fails if either check fails. When the summary matches and the statement does not print a running balance, that sub-check stays `incomplete` and the statement still passes.
 - MCA position count, missed and bounced payments, monthly debt service, holdback
 - Tamper flags, plus integrity flags when reconciliation fails
 

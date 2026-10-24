@@ -116,7 +116,7 @@ const CLEAN = [
   ['split', SPLIT, '2026-02-01', '2026-02-28', 'pass'],
   ['drcr', DRCR, '2026-03-01', '2026-03-31', 'pass'],
   ['sectioned', SECTIONED, '2026-04-01', '2026-04-30', 'pass'],
-  ['amount-only', AMOUNT_ONLY, '2026-05-01', '2026-05-31', 'incomplete'],
+  ['amount-only', AMOUNT_ONLY, '2026-05-01', '2026-05-31', 'pass'],
   ['right-aligned', RIGHT_ALIGNED, '2026-06-01', '2026-06-30', 'pass'],
 ];
 

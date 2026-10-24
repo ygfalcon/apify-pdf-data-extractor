@@ -7,8 +7,9 @@ export function classify(layer) {
   if (/statement period|deposits and credits|withdrawals and debits/.test(text)) scores.bank_statement += 2;
   if (/account (number|summary)/.test(text) && /balance/.test(text)) scores.bank_statement += 1;
   if (/purchase order|\bpo number|\bp\.o\./.test(text)) scores.purchase_order += 4;
-  if (/\binvoice\b/.test(text)) scores.invoice += 3;
-  if (/bill to|due date|amount due|total due/.test(text)) scores.invoice += 1.5;
+  if (/\binvoice\b|factuur|facture|rechnung|factuurnummer|rechnungsnr|rechnungsnummer/.test(text)) scores.invoice += 3;
+  if (/bill to|due date|amount due|total due|total ttc|factuur totaal|grand total/.test(text)) scores.invoice += 1.5;
+  if (/payment receipt/.test(text) && /grand total|\btotal\b/.test(text)) scores.invoice += 3;
   if (/\b(visa|mastercard|amex|change due)\b/.test(text) && /\btotal\b/.test(text)) scores.receipt += 2.5;
   if (layer.lines.length < 50 && /\bsubtotal\b/.test(text) && !/\binvoice\b/.test(text) && scores.bank_statement < 3) scores.receipt += 1.5;
   const [type, score] = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];

@@ -1,0 +1,50 @@
+{
+ "chase.pdf": {
+  "open": 12450.18,
+  "close": 29963.01,
+  "dep": 33279.33,
+  "wd": 15766.5,
+  "n": 40,
+  "holder": "RIVERBEND HVAC SERVICES LLC",
+  "last4": "9876",
+  "nsf": 7
+ },
+ "wells.pdf": {
+  "open": 3021.77,
+  "close": 25597.99,
+  "dep": 43556.49,
+  "wd": 20980.27,
+  "n": 45,
+  "holder": "MILE HIGH BAKERY CO",
+  "last4": "7890",
+  "nsf": 6
+ },
+ "bofa.pdf": {
+  "open": 880.4,
+  "close": 10467.18,
+  "dep": 29987.78,
+  "wd": 20401.0,
+  "n": 35,
+  "holder": "CASCADE LANDSCAPING INC",
+  "last4": "2231",
+  "nsf": 5
+ },
+ "receipt.pdf": {
+  "vendor": "SAFEWAY",
+  "date": "2026-10-18",
+  "subtotal": 17.15,
+  "tax": 0.49,
+  "total": 17.64,
+  "items": 4
+ },
+ "invoice_messy.pdf": {
+  "vendor": "Peak Plumbing Supply, Inc.",
+  "number": "PPS-2026-10442",
+  "date": "2026-10-02",
+  "due": "2026-11-01",
+  "subtotal": 1141.0,
+  "tax": 95.5,
+  "total": 1224.45,
+  "items": 4
+ }
+}

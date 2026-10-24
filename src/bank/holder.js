@@ -11,7 +11,7 @@ import { findMoney } from '../lib/money.js';
 const ENTITY = /\b(?:LLC|L\.L\.C\.?|INC\.?|INCORPORATED|CORP\.?|CORPORATION|LTD\.?|LIMITED|LLP|L\.L\.P\.?|PLLC|P\.C\.|PC|COMPANY|DBA)\b/i;
 const BANKISH = /\b(?:bank|credit union|n\.a\.|trust company)\b/i;
 const LABEL = /^(?:account\s+holder|account\s+name|customer(?:\s+name)?|member(?:\s+name)?|prepared\s+for)\s*[:\-]\s*(.+)$/i;
-const BOILER = /\b(?:statement|summary|checking|savings|balance|balances|deposit|deposits|withdrawal|withdrawals|period|page|account|number|date|description|amount|amounts|total|totals|credit|credits|debit|debits|beginning|ending|opening|closing|available|ledger|activity|through|thru|fdic|routing)\b/i;
+const BOILER = /\b(?:statement|summary|checking|savings|balance|balances|deposit|deposits|withdrawal|withdrawals|period|page|account|number|date|description|amount|amounts|total|totals|credit|credits|debit|debits|beginning|ending|opening|closing|available|ledger|activity|through|thru|fdic|routing|transaction|history)\b/i;
 const JUNK = /\b(?:equal housing|customer service|www\.|https?:|telephone|phone|fax|e-mail|email)\b/i;
 const EMBEDDED_DATE = /\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:,?\s+\d{4})?|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?,?(?:\s+\d{4})?)\b/i;
 const LEADING_DATE = /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:,?\s+\d{4})?|\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?,?(?:\s+\d{4})?)\b/i;
@@ -86,16 +86,18 @@ export function accountHolder(lines, bankName = null) {
   const labeled = [];
   const unlabeled = [];
   for (const text of headerTexts(lines)) {
-    if (isBankLine(text, bankName)) continue;
-    if (containsDate(text) || containsAmount(text) || JUNK.test(text)) continue;
-    const label = text.match(LABEL);
-    if (label) {
-      const name = accept(label[1]);
-      if (name && !isBankLine(name, bankName)) labeled.push(name);
-      continue;
+    for (const part of text.split(/\s*\|\s*/)) {
+      if (isBankLine(part, bankName)) continue;
+      if (containsDate(part) || containsAmount(part) || JUNK.test(part)) continue;
+      const label = part.match(LABEL);
+      if (label) {
+        const name = accept(label[1]);
+        if (name && !isBankLine(name, bankName)) labeled.push(name);
+        continue;
+      }
+      const name = accept(part);
+      if (name && !isBankLine(name, bankName)) unlabeled.push(name);
     }
-    const name = accept(text);
-    if (name && !isBankLine(name, bankName)) unlabeled.push(name);
   }
   const labeledUnique = [...new Set(labeled)];
   if (labeledUnique.length === 1) return labeledUnique[0];

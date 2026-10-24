@@ -75,7 +75,7 @@ This came from running the actor locally on the sample bank statement above. It 
 | `bank_statement` | All transactions + underwriting summary | **$0.24 per statement** (non-statements in the same batch are billed as $0.029 documents) |
 | `preview` | Page 1 only | **Free** |
 
-You're charged only for successful extractions. 100 bank statements cost $25, and 1,000 invoices cost $30. Platform usage is included in the per-event price.
+You're charged only for successful extractions. A bank statement is billed the $0.24 event only when opening + credits − debits equals the closing balance. A mismatch is returned with `reconciliation_status: fail` and is not charged. 100 bank statements that pass cost $24, and 1,000 invoices cost $29. Platform usage is included in the per-event price.
 
 ## 💡 Use cases
 - MCA and business-loan underwriting: ADB, NSF count, true revenue, existing positions and holdback in one pass

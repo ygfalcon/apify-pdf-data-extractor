@@ -1,5 +1,5 @@
 import { Actor, log } from 'apify';
-import { chargeEvent, isBillable } from './extract.js';
+import { redactSecrets, settleDocument } from './billing.js';
 import { extractIsolated } from './isolate.js';
 const MAX = 4 * 1024 * 1024 * 4; // 16 MB per file on Apify
 
@@ -30,22 +30,29 @@ for (const url of sources) {
         const buf = await fetchPdf(url);
         const type = mode === 'bank_statement' ? 'auto' : docType;
         const r = await extractIsolated(buf, { mode: mode === 'preview' ? 'preview' : 'full', type: type === 'auto' ? undefined : type });
-        if (!isBillable(r)) throw new Error(r.note || r.vision_error || r.error || 'Extraction failed');
-        const item = { sourceUrl: url, ...r };
-        const eventName = chargeEvent(mode, r.document_type);
-        if (eventName) {
-            const c = await Actor.charge({ eventName, count: 1 });
-            stats.charged += c?.chargedCount ?? 0;
-            if (c?.eventChargeLimitReached && !(c?.chargedCount > 0)) { stats.stoppedByBudget = true; break; }
-            if (c?.eventChargeLimitReached) stats.stoppedByBudget = true;
+        const outcome = await settleDocument({
+            result: r,
+            sourceUrl: url,
+            mode,
+            pushData: (item) => dataset.pushData(item),
+            charge: (args) => Actor.charge(args),
+        });
+        stats.charged += outcome.chargedCount ?? 0;
+        if (outcome.eventChargeLimitReached && !(outcome.chargedCount > 0)) { stats.stoppedByBudget = true; break; }
+        if (outcome.eventChargeLimitReached) stats.stoppedByBudget = true;
+        const previewOk = mode === 'preview' && !r?.scanned && !r?.error;
+        if (outcome.billable || previewOk) {
+            stats.succeeded++;
+            log.info(`OK ${redactSecrets(url)} -> ${r.document_type} (${r.pages} pages)`);
+        } else {
+            stats.failed++;
+            log.info(redactSecrets(`Not charged ${url} -> ${r.document_type || r.error || 'empty'}`));
         }
-        await dataset.pushData(item);
-        stats.succeeded++;
-        log.info(`OK ${url} -> ${r.document_type} (${r.pages} pages)`);
     } catch (e) {
         stats.failed++;
-        log.warning(`Failed ${url}: ${e.message}`);
-        await dataset.pushData({ sourceUrl: url, error: e.message, charged: false });
+        const message = redactSecrets(e instanceof Error ? e.message : String(e));
+        log.warning(`Failed ${redactSecrets(url)}: ${message}`);
+        await dataset.pushData({ sourceUrl: redactSecrets(url), error: message, charged: false });
     }
 }
 await Actor.setValue('SUMMARY', stats);

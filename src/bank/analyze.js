@@ -109,7 +109,8 @@ function dailyBalances(txns, opening, start, end) {
 }
 
 function monthKeys(start, end, txns) {
-  if (start && end) return [...new Set(eachDate(start, end).map((d) => d.slice(0, 7)))];
+  const fromPeriod = start && end ? [...new Set(eachDate(start, end).map((d) => d.slice(0, 7)))] : [];
+  if (fromPeriod.length) return fromPeriod;
   return [...new Set(txns.map((t) => t.date.slice(0, 7)))].sort();
 }
 

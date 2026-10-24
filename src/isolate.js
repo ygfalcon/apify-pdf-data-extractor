@@ -6,7 +6,7 @@ const WORKER_URL = new URL('./worker.js', import.meta.url);
 // malformed PDF can never freeze the run. A timed-out file returns an error and is never charged.
 export function extractIsolated(buffer, opts = {}, { timeoutMs = 90_000, workerUrl = WORKER_URL } = {}) {
   return new Promise((resolve) => {
-    const worker = new Worker(workerUrl, { workerData: { bytes: new Uint8Array(buffer), opts } });
+    const worker = new Worker(workerUrl, { execArgv: [], workerData: { bytes: new Uint8Array(buffer), opts } });
     let done = false;
     const finish = (result) => {
       if (done) return;

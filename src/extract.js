@@ -7,6 +7,11 @@ import { isScanned, readTextLayer } from './lib/text-layer.js';
 
 const SCANNED_NOTE = 'Scanned or image-only PDF. Digital text-layer PDFs only; this file was not charged.';
 const DISCLAIMER = 'Automated extraction. Verify before relying on it. Not credit, legal or tax advice.';
+const MAX_PDF_BYTES = 16 * 1024 * 1024;
+
+function rejected(message) {
+  return { error: message, note: message, charged: false };
+}
 
 function scannedResult(pages) {
   return {
@@ -30,12 +35,15 @@ export { chargeEvent, isBillable };
 export async function extractDocument(buffer, opts = {}) {
   const started = Date.now();
   const mode = opts.mode === 'preview' ? 'preview' : 'full';
+  const bytes = buffer == null ? null : Buffer.from(buffer);
+  if (!bytes || bytes.length < 5 || bytes.subarray(0, 5).toString() !== '%PDF-') return rejected('Not a PDF file');
+  if (bytes.length > MAX_PDF_BYTES) return rejected('File larger than 16 MB');
   let layer;
   try {
-    layer = await readTextLayer(buffer, mode === 'preview' ? 1 : 60);
+    layer = await readTextLayer(bytes, mode === 'preview' ? 1 : 60);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    return { error: message, note: message, charged: false };
+    return rejected(message);
   }
   if (isScanned(layer)) return { ...scannedResult(layer.pageCount), elapsed_ms: Date.now() - started };
 

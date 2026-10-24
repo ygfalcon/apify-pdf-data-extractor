@@ -1,5 +1,6 @@
 import { Actor, log } from 'apify';
-import { chargeEvent, extractDocument, isBillable } from './extract.js';
+import { chargeEvent, isBillable } from './extract.js';
+import { extractIsolated } from './isolate.js';
 const MAX = 4 * 1024 * 1024 * 4; // 16 MB per file on Apify
 
 await Actor.init();
@@ -28,7 +29,7 @@ for (const url of sources) {
     try {
         const buf = await fetchPdf(url);
         const type = mode === 'bank_statement' ? 'auto' : docType;
-        const r = await extractDocument(buf, { mode: mode === 'preview' ? 'preview' : 'full', type: type === 'auto' ? undefined : type });
+        const r = await extractIsolated(buf, { mode: mode === 'preview' ? 'preview' : 'full', type: type === 'auto' ? undefined : type });
         if (!isBillable(r)) throw new Error(r.note || r.vision_error || r.error || 'Extraction failed');
         const item = { sourceUrl: url, ...r };
         const eventName = chargeEvent(mode, r.document_type);

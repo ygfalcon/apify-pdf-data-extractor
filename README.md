@@ -1,6 +1,6 @@
 # 📄 PDF Data Extractor: Invoices, W-9s & Bank Statements
 
-**Drop in a PDF URL, get clean JSON back.** Invoices, receipts, purchase orders, W-9s and bank statements, with no templates to build and no OCR guesswork. Bank-statement mode goes further: every transaction categorized, a pass/fail reconciliation, true revenue, and MCA positions with missed and bounced payments, all for **$0.25 per statement**.
+**Drop in a PDF URL, get clean JSON back.** Invoices, receipts, purchase orders, W-9s and bank statements, with no templates to build and no OCR guesswork. Bank-statement mode goes further: every transaction categorized, a pass/fail reconciliation, true revenue, and MCA positions with missed and bounced payments, all for **$0.24 per statement**.
 
 ## 🎯 Who it's for
 - **MCA, small-business and alternative lenders** who need underwriting numbers from bank statements in seconds instead of hand-keying them
@@ -71,8 +71,8 @@ This came from running the actor locally on the sample bank statement above. It 
 ## 💵 Pricing, in plain English
 | Mode | What you get | Price |
 |---|---|---|
-| `extract` | Any digital document, type auto-detected, structured fields | **$0.03 per document** |
-| `bank_statement` | All transactions + underwriting summary | **$0.25 per statement** (non-statements in the same batch are billed as $0.03 documents) |
+| `extract` | Any digital document, type auto-detected, structured fields | **$0.029 per document** (a bank statement gets the full analysis and is billed as a $0.24 statement) |
+| `bank_statement` | All transactions + underwriting summary | **$0.24 per statement** (non-statements in the same batch are billed as $0.029 documents) |
 | `preview` | Page 1 only | **Free** |
 
 You're charged only for successful extractions. 100 bank statements cost $25, and 1,000 invoices cost $30. Platform usage is included in the per-event price.
@@ -81,7 +81,7 @@ You're charged only for successful extractions. 100 bank statements cost $25, an
 - MCA and business-loan underwriting: ADB, NSF count, true revenue, existing positions and holdback in one pass
 - Spotting stacked MCAs and missed or bounced payments before funding
 - Flagging edited or doctored statements for manual review
-- Accounts payable automation: invoice, PO and receipt fields plus line items into your ERP or spreadsheet
+- Accounts payable automation: invoice, PO and receipt fields (vendor, buyer, ship-to, numbers, dates, totals) plus line items into your ERP or spreadsheet
 - Vendor onboarding: pulling W-9 name, business name, tax classification, address and EIN (or SSN last 4) from fillable or flattened digital W-9s
 - Feeding structured financial data to AI agents through the Apify API or MCP server
 

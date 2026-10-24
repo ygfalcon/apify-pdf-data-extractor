@@ -70,7 +70,8 @@ function vendorName(lines, text) {
   for (let i = 0; i < top.length; i += 1) {
     const item0 = (top[i].items?.[0]?.s || '').trim();
     if (/^(from|seller|supplier)\s*:?\s*$/i.test(item0)) return cleanVendor(top[i + 1]?.items?.[0]?.s);
-    if (/^vendor\s*:?\s*$/i.test(item0) && !/ship\s*to/i.test(top[i].text)) return cleanVendor(top[i + 1]?.items?.[0]?.s);
+    // "Vendor:" can sit beside "Ship To:" on one row. The next line's left column is the vendor.
+    if (/^vendor\s*:?\s*$/i.test(item0)) return cleanVendor(top[i + 1]?.items?.[0]?.s);
   }
   const pay = text.match(/payment received by\s+([A-Za-z][A-Za-z0-9.&'-]{1,30})/i);
   if (pay) return cleanVendor(pay[1]);
@@ -131,6 +132,34 @@ function valueBeside(lines, labelTest) {
   }
   return null;
 }
+
+// Value of a labeled party block ("Bill To:", "Ship To:", "Vendor:"), either inline after the label or on the
+// next line in the same column. Works when two blocks sit side by side on one row.
+function blockValue(lines, re, maxLine = 25) {
+  const top = lines.slice(0, maxLine);
+  for (let i = 0; i < top.length; i += 1) {
+    for (const it of top[i].items ?? []) {
+      const s = it.s.trim();
+      const m = s.match(re);
+      if (!m || m.index !== 0) continue;
+      const inline = s.slice(m[0].length).replace(/^[\s:#.-]+/, '').trim();
+      if (inline) return inline;
+      if (!/^[\s:]*$/.test(s.slice(m[0].length))) continue;
+      const next = top[i + 1];
+      if (!next?.items?.length) continue;
+      const below = next.items
+        .map((n) => ({ n, d: Math.abs(n.x - it.x) }))
+        .filter(({ d }) => d < 60)
+        .sort((a, b) => a.d - b.d)[0];
+      const value = below?.n.s.trim();
+      if (value && !/^\d+([.,]\d+)?$/.test(value)) return value;
+    }
+  }
+  return null;
+}
+
+const BUYER_LABEL = /(to(?=\s*:)|bill(ed)? to|sold to|buyer|purchaser|customer|invoice to|ordered by)\b/i;
+const SHIP_LABEL = /(ship(ped)? to|deliver(y)? to)\b/i;
 
 function invoiceNumber(lines, text) {
   const labeled = text.match(/(?:invoice\s*(?:number|no\.?|#)|factuurnummer|rechnungsnr\.?|rechnungsnummer|facture\s*n°|factuur\s*n°)\s*[:.]?\s*#?\s*([A-Z0-9][A-Z0-9/._-]*\d[A-Z0-9/._-]*)/i);
@@ -579,9 +608,22 @@ export function analyzeCommercial(layer, type) {
   const issuedDate = findIssued(lines, text, type, order);
   const dueDate = type === 'invoice' ? findDue(lines, text, order) : null;
   const currency = detectCurrency(text);
+  const headerText = (l) => (l?.items?.[0]?.s ?? l?.text ?? '').trim();
+  const headerIssuer = (() => {
+    const l = lines.slice(0, 4).find((x) => !/^(tax\s+)?(invoice|receipt|purchase order|bill to|sold to|vendor|ship to)\b/i.test(headerText(x)) && !/^[\d#]/.test(headerText(x)));
+    return l ? headerText(l) : null;
+  })();
+  const labeledBuyer = blockValue(lines, BUYER_LABEL);
+  const shipTo = blockValue(lines, SHIP_LABEL);
+  // On a PO the issuer at the top is the buyer and the vendor is labeled; on invoices the buyer is the Bill To block.
+  const buyerName = labeledBuyer
+    ?? (type === 'purchase_order' && headerIssuer && headerIssuer !== vendor ? headerIssuer : null);
+  const buyerSource = labeledBuyer ? 'label' : 'header';
 
   const fields = {
     vendor_name: field(vendor, 0.8, 'header'),
+    buyer_name: field(buyerName, buyerSource === 'label' ? 0.85 : 0.7, buyerSource),
+    ...(shipTo ? { ship_to: field(shipTo, 0.85, 'label') } : {}),
     currency: field(currency, currency ? 0.9 : 0.3, 'text'),
     ...(type === 'purchase_order'
       ? { po_number: field(number, 0.93, 'label'), po_date: field(issuedDate, 0.9, 'label') }
@@ -607,6 +649,8 @@ export function analyzeCommercial(layer, type) {
     summary: {
       document_type: type,
       number,
+      vendor,
+      buyer: buyerName,
       total,
       subtotal,
       tax,

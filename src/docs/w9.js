@@ -48,7 +48,7 @@ function fromFlattened(lines) {
   for (const l of page1) {
     for (let k = 0; k < l.items.length - 1; k++) {
       const mark = l.items[k]; const next = l.items[k + 1];
-      if (/^[4✓✔xX]$/.test(mark.s.trim()) && next.x - (mark.x + mark.w) < 16) {
+      if (/^[4✓✔xX]$/.test(mark.s.trim()) && next.x - (mark.x + (mark.w || 0)) < 42) {
         const hit = LABELS.find(([re]) => re.test(next.s.trim()));
         if (hit) out.tax_classification = hit[1];
       }

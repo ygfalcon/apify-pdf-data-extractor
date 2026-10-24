@@ -1,7 +1,7 @@
 import { Actor, log } from 'apify';
 import { chargeEvent, isBillable } from './extract.js';
 import { extractIsolated } from './isolate.js';
-const MAX = 4 * 1024 * 1024 * 4; // 16 MB per file on Apify
+import { fetchPdf } from './lib/fetch-pdf.js';
 
 await Actor.init();
 const input = (await Actor.getInput()) ?? {};
@@ -13,16 +13,6 @@ if (!sources.length) await Actor.fail('Add at least one PDF URL in "pdfUrls".');
 
 const dataset = await Actor.openDataset();
 const stats = { mode, requested: sources.length, succeeded: 0, failed: 0, charged: 0, stoppedByBudget: false };
-
-async function fetchPdf(url) {
-    if (!/^https?:\/\//i.test(url)) throw new Error('URL must start with http(s)://');
-    const res = await fetch(url, { signal: AbortSignal.timeout(60_000), headers: { 'user-agent': 'falcon-docs-actor/1.0' } });
-    if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
-    if (buf.length > MAX) throw new Error('File larger than 16 MB');
-    if (buf.subarray(0, 5).toString() !== '%PDF-') throw new Error('Not a PDF file');
-    return buf;
-}
 
 for (const url of sources) {
     if (stats.stoppedByBudget) break;

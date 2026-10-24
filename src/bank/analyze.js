@@ -28,6 +28,8 @@ function chronological(txns, opening) {
 
 function hintSign(description) {
   const d = description.toLowerCase();
+  // "Payment from" / "payment received" is money coming in. A bare "payment" stays a debit.
+  if (/\bpayment (from|received)\b/.test(d)) return 1;
   if (/\b(debit|withdrawal|purchase|pos|payment|paid)\b/.test(d) && !/\bcredit\b/.test(d) && !/deposit/.test(d)) return -1;
   if (/\bcheck\s*#?\s*\d+/.test(d) && !/deposit/.test(d)) return -1;
   if (/\b(credit|deposit)\b/.test(d)) return 1;
@@ -60,6 +62,11 @@ function dedupe(txns) {
   const seen = new Set();
   const out = [];
   for (const t of txns) {
+    // Amount-only rows have no running balance. The same day, amount, and description can be two real deposits.
+    if (t.balance == null) {
+      out.push(t);
+      continue;
+    }
     const key = `${t.date}|${t.amount}|${t.balance}|${t.description}`;
     if (seen.has(key)) continue;
     seen.add(key);

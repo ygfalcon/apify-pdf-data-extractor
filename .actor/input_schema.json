@@ -17,15 +17,15 @@
       "title": "Mode",
       "type": "string",
       "editor": "select",
-      "description": "Extract: any document, type auto-detected ($0.03). Bank statement: every transaction, pass/fail reconciliation, true revenue, ADB, NSF and MCA positions ($0.25). Preview: page 1 only, free, good for testing.",
+      "description": "Extract: any document, type auto-detected ($0.029; bank statements are billed $0.24). Bank statement: every transaction, pass/fail reconciliation, true revenue, ADB, NSF and MCA positions ($0.24). Preview: page 1 only, free, good for testing.",
       "enum": [
         "extract",
         "bank_statement",
         "preview"
       ],
       "enumTitles": [
-        "Extract any document ($0.03 / document)",
-        "Bank statement analysis ($0.25 / statement)",
+        "Extract any document ($0.029 / document)",
+        "Bank statement analysis ($0.24 / statement)",
         "Preview page 1 (free)"
       ],
       "default": "extract"

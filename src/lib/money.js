@@ -11,15 +11,19 @@ export function moneyEq(a, b) {
   return Math.abs(a - b) < 0.015;
 }
 
-const CUR = String.raw`(?:US\$|[$€£₹]|Rs\.?)`;
+// USD / US$ / $/€/£/₹/Rs, accounting parens, a leading or trailing minus,
+// a statement asterisk, and a DR/CR marker. Decimals accept "." or ",".
+// A bare integer is not money (so check numbers and dates are not amounts);
+// an integer is money only when a currency mark is printed (Rs 1939, € 12).
+const CUR = String.raw`(?:USD|US\$|[$€£₹]|Rs\.?)`;
 const NUM_DEC = String.raw`(?:\d{1,3}(?:[.,]\d{3})+|\d+)[.,]\d{2}`;
 const NUM_INT = String.raw`(?:\d{1,3}(?:[.,]\d{3})+|\d+)`;
 const SIGN_WRAP = String.raw`[-(]?\s*${CUR}?\s*-?\s*`;
-const TAIL = String.raw`\s*${CUR}?\s*\)?-?(?:\s*(?:DR|CR))?`;
+const TAIL = String.raw`\s*${CUR}?\s*\)?\s*-?\s*\*?(?:\s*(?:DR|CR))?`;
 const DEC_BODY = String.raw`${SIGN_WRAP}${NUM_DEC}${TAIL}`;
 const INT_BODY = String.raw`(?:${CUR}\s*-?\s*${NUM_INT}|-?\s*${NUM_INT}\s*${CUR})`;
-const DEC_RE = new RegExp(String.raw`(?<![\w])(${DEC_BODY})(?!\s*%)`, 'gi');
-const INT_RE = new RegExp(String.raw`(?<![\w])(${INT_BODY})(?!\s*[.,]\d)(?!\s*%)`, 'gi');
+const DEC_SRC = String.raw`(?<![\w])(${DEC_BODY})(?!\s*%)`;
+const INT_SRC = String.raw`(?<![\w])(${INT_BODY})(?!\s*[.,]\d)(?!\s*%)`;
 const TOKEN_RE = new RegExp(String.raw`^(?:${DEC_BODY}|${INT_BODY})$`, 'i');
 
 export function isMoneyToken(raw) {
@@ -36,6 +40,12 @@ function localizedNumber(token) {
   return Number(m[1].replace(/,/g, '') + m[2]);
 }
 
+export function stripMoney(text) {
+  return String(text ?? '')
+    .replace(new RegExp(DEC_SRC, 'gi'), ' ')
+    .replace(new RegExp(INT_SRC, 'gi'), ' ');
+}
+
 /**
  * Parse a single money token.
  * explicit is true when the sign is printed (minus, parentheses, trailing minus, DR/CR).
@@ -45,13 +55,15 @@ function localizedNumber(token) {
 export function parseMoneyToken(raw) {
   let t = String(raw ?? '').trim();
   if (!t || /%/.test(t) || !TOKEN_RE.test(t)) return null;
+  t = t.replace(/^USD\s+/i, '').trim();
   const suffix = t.match(/\s*(DR|CR)$/i);
   if (suffix) t = t.slice(0, -suffix[0].length).trim();
+  t = t.replace(/\*\s*$/, '').trim();
   const paren = /^\(.*\)$/.test(t);
   const dr = suffix && suffix[1].toUpperCase() === 'DR';
   const cr = suffix && suffix[1].toUpperCase() === 'CR';
   const leadingMinus = /(?:^|[$€£₹]|Rs\.?)\s*-/i.test(t);
-  const trailingMinus = /-$/.test(t) && !leadingMinus;
+  const trailingMinus = /-\s*$/.test(t) && !leadingMinus;
   const neg = paren || trailingMinus || leadingMinus || dr;
   const n = localizedNumber(t);
   if (!Number.isFinite(n)) return null;
@@ -62,8 +74,8 @@ export function parseMoneyToken(raw) {
 export function findMoney(text) {
   const src = String(text ?? '');
   const found = [];
-  for (const re of [DEC_RE, INT_RE]) {
-    re.lastIndex = 0;
+  for (const srcRe of [DEC_SRC, INT_SRC]) {
+    const re = new RegExp(srcRe, 'gi');
     for (const match of src.matchAll(re)) {
       const parsed = parseMoneyToken(match[0]);
       if (!parsed) continue;

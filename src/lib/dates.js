@@ -45,10 +45,11 @@ export function nextBusinessDay(iso) {
 
 /** Business-day steps from a to b. Friday to Monday is 1. */
 export function businessSteps(a, b) {
-  if (b <= a) return 0;
+  if (!a || !b || b <= a) return 0;
+  if (daysBetween(a, b) > 400) return daysBetween(a, b);
   let n = 0;
   let d = a;
-  while (d < b) {
+  while (d < b && n < 400) {
     d = nextBusinessDay(d);
     if (d > b) break;
     n += 1;
@@ -59,8 +60,12 @@ export function businessSteps(a, b) {
 
 export function missedBusinessDays(prev, next) {
   const missed = [];
+  if (!prev || !next || next <= prev) return missed;
+  // A real statement cannot hide years of missed pulls. Stop rather than build
+  // a gigantic list from a bad date.
+  if (daysBetween(prev, next) > 400) return missed;
   let d = nextBusinessDay(prev);
-  while (d < next) {
+  while (d < next && missed.length < 400) {
     missed.push(d);
     d = nextBusinessDay(d);
   }
@@ -159,17 +164,29 @@ export function isDateToken(raw) {
   return true;
 }
 
+const DATED = String.raw`(?:[A-Za-z]{3,12}\.?\s+\d{1,2}\s*,?\s+\d{4}|\d{1,2}\.?\s+[A-Za-z]{3,12}\.?\s+\d{4}|\d{1,2}[/.\-]\d{1,2}[/.\-]\d{2,4}|[A-Za-z]{3,12}\.?\s+\d{1,2}|\d{1,2}[/.\-]\d{1,2})`;
+const MAX_SPAN_DAYS = 400;
+
 export function parsePeriod(lines) {
-  const text = lines.filter((l) => l.page === 1).slice(0, 40).map((l) => l.text).join('\n');
-  const re = /([A-Za-z]{3,12}\.?\s+\d{1,2}\s*,?\s+\d{4}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\s*(?:-|–|—|\bto\b|\bthrough\b|\bthru\b)\s*([A-Za-z]{3,12}\.?\s+\d{1,2}\s*,?\s+\d{4}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/i;
+  const text = lines.filter((l) => !l.page || l.page === 1).slice(0, 40).map((l) => l.text).join('\n');
+  const re = new RegExp(`(${DATED})\\s*(?:-|–|—|\\bto\\b|\\bthrough\\b|\\bthru\\b)\\s*(${DATED})`, 'i');
   const m = text.match(re);
-  if (m) return { start: parseDate(m[1].replace(/\s+/g, ' ')), end: parseDate(m[2].replace(/\s+/g, ' ')) };
+  if (m) {
+    const end = parseDate(m[2].replace(/\s+/g, ' '));
+    let start = parseDate(m[1].replace(/\s+/g, ' '), end ? { start: addDays(end, -370), end } : null);
+    if (start && end && start > end) {
+      const year = Number(end.slice(0, 4)) - 1;
+      const shifted = toIso(year, Number(start.slice(5, 7)), Number(start.slice(8, 10)));
+      if (shifted && shifted <= end) start = shifted;
+    }
+    return { start, end };
+  }
   const begin = text.match(/beginning balance on\s+(\d{1,2}\/\d{1,2})\b/i);
-  const end = text.match(/ending balance on\s+(\d{1,2}\/\d{1,2})\b/i);
+  const endOn = text.match(/ending balance on\s+(\d{1,2}\/\d{1,2})\b/i);
   const stamp = text.match(/\b([A-Za-z]{3,12}\s+\d{1,2}\s*,\s*\d{4})\b/);
-  if (begin && end && stamp) {
+  if (begin && endOn && stamp) {
     const year = stamp[1].match(/\d{4}/)[0];
-    return { start: parseDate(`${begin[1]}/${year}`), end: parseDate(`${end[1]}/${year}`) };
+    return { start: parseDate(`${begin[1]}/${year}`), end: parseDate(`${endOn[1]}/${year}`) };
   }
   return { start: null, end: null };
 }
@@ -177,6 +194,7 @@ export function parsePeriod(lines) {
 export function eachDate(start, end) {
   const out = [];
   if (!start || !end || end < start) return out;
-  for (let d = start; d <= end; d = addDays(d, 1)) out.push(d);
+  if (daysBetween(start, end) > MAX_SPAN_DAYS) return out;
+  for (let d = start, guard = 0; d <= end && guard <= MAX_SPAN_DAYS; d = addDays(d, 1), guard += 1) out.push(d);
   return out;
 }

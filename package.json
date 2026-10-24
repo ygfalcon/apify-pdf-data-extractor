@@ -19,5 +19,6 @@
   "repository": "github:ygfalcon/apify-pdf-data-extractor",
   "devDependencies": {
     "pdf-lib": "^1.17.1"
-  }
+  },
+  "author": "falcon.sol (https://x.com/ygfalcon)"
 }

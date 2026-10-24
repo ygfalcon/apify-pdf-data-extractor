@@ -72,6 +72,10 @@ function vendorName(lines, text) {
     if (/^(from|seller|supplier)\s*:?\s*$/i.test(item0)) return cleanVendor(top[i + 1]?.items?.[0]?.s);
     if (/^vendor\s*:?\s*$/i.test(item0) && !/ship\s*to/i.test(top[i].text)) return cleanVendor(top[i + 1]?.items?.[0]?.s);
   }
+  for (const line of top) {
+    const inline = line.text.match(/^(?:from|seller|supplier|vendor)\s*:\s*(.+)$/i);
+    if (inline && !/ship\s*to/i.test(line.text)) return cleanVendor(inline[1]);
+  }
   const pay = text.match(/payment received by\s+([A-Za-z][A-Za-z0-9.&'-]{1,30})/i);
   if (pay) return cleanVendor(pay[1]);
   const tit = text.match(/titulaire du compte\s*:\s*([A-Za-z0-9][A-Za-z0-9 .&'-]{1,40})/i);
@@ -112,6 +116,58 @@ function vendorName(lines, text) {
     return cleanVendor(name);
   }
   return null;
+}
+
+const VENDOR_LABEL = /^(?:from|seller|vendor|supplier|sold by|remit to)\b/i;
+const BUYER_LABEL = /^(?:to(?=\s*:)|bill(?:ed)? to|sold to|buyer|purchaser|customer|invoice to|ordered by)\b/i;
+const SHIP_LABEL = /^(?:ship(?:ped)? to|deliver(?:y)? to)\b/i;
+
+function headerText(line) {
+  return (line?.items?.[0]?.s ?? line?.text ?? '').trim();
+}
+
+// Value of a labeled party block, inline or on the next line in the same column.
+// Two blocks can sit side by side on one row.
+function blockValue(lines, re, maxLine = 25) {
+  const top = lines.slice(0, maxLine);
+  for (let i = 0; i < top.length; i += 1) {
+    for (const it of top[i].items ?? []) {
+      const s = it.s.trim();
+      const m = s.match(re);
+      if (!m || m.index !== 0) continue;
+      const inline = s.slice(m[0].length).replace(/^[\s:#.-]+/, '').trim();
+      if (inline) return inline;
+      if (!/^[\s:]*$/.test(s.slice(m[0].length))) continue;
+      const next = top[i + 1];
+      if (!next?.items?.length) continue;
+      const below = next.items
+        .map((n) => ({ n, d: Math.abs(n.x - it.x) }))
+        .filter(({ d }) => d < 60)
+        .sort((a, b) => a.d - b.d)[0];
+      const value = below?.n.s.trim();
+      if (value && !/^\d+([.,]\d+)?$/.test(value)) return value;
+    }
+  }
+  return null;
+}
+
+function parties(lines, type) {
+  const fromIdx = lines.slice(0, 12).findIndex((line) => /^(?:from|seller|vendor|supplier)\s*:?\s*$/i.test(headerText(line)));
+  let vendorFromLabel = fromIdx >= 0 ? headerText(lines[fromIdx + 1]) || null : null;
+  const labeledVendor = blockValue(lines, VENDOR_LABEL);
+  if (!vendorFromLabel && labeledVendor) vendorFromLabel = labeledVendor;
+  const headerIssuer = lines.slice(0, 4).map(headerText).find((text) => text && !/^(?:tax\s+)?(?:invoice|receipt|purchase order|bill to|sold to|vendor|ship to)\b/i.test(text) && !/^[\d#]/.test(text)) || null;
+  const labeledBuyer = blockValue(lines, BUYER_LABEL);
+  const shipTo = blockValue(lines, SHIP_LABEL);
+  const buyerName = labeledBuyer
+    ?? (type === 'purchase_order' && headerIssuer && headerIssuer !== vendorFromLabel ? headerIssuer : null);
+  return {
+    vendorName: vendorFromLabel || headerIssuer,
+    vendorLabeled: Boolean(vendorFromLabel),
+    buyerName,
+    buyerSource: labeledBuyer ? 'label' : 'header',
+    shipTo,
+  };
 }
 
 function valueBeside(lines, labelTest) {
@@ -253,15 +309,31 @@ function nearestMoney(line, labelRe) {
   return sorted[0].value;
 }
 
+function amountOnlyText(text) {
+  const letters = String(text ?? '').replace(/rs\.?|usd|eur|gbp|inr/gi, '').replace(/[^A-Za-z]/g, '');
+  return !letters;
+}
+
 function scanAmount(lines, re, reject, choose = 'last') {
   for (let i = lines.length - 1; i >= 0; i -= 1) {
     const text = lines[i].text;
     if (reject && reject.test(text)) continue;
     if (!re.test(text)) continue;
-    const moneys = lineMoneys(lines[i]);
+    let line = lines[i];
+    let moneys = lineMoneys(line);
+    if (!moneys.length) {
+      const next = lines[i + 1];
+      if (next && amountOnlyText(next.text)) {
+        const nextMoneys = lineMoneys(next);
+        if (nextMoneys.length) {
+          line = next;
+          moneys = nextMoneys;
+        }
+      }
+    }
     if (!moneys.length) continue;
     if (choose === 'first') return moneys[0].value;
-    if (choose === 'nearest') return nearestMoney(lines[i], re);
+    if (choose === 'nearest') return nearestMoney(line, re);
     return moneys[moneys.length - 1].value;
   }
   return null;
@@ -326,14 +398,22 @@ function isContinuation(prev, text) {
   return false;
 }
 
+function parseQtyNumber(raw) {
+  const s = String(raw).trim();
+  if (/^\d{1,3}(?:[.,]\d{3})+(?:\.\d+)?$/.test(s)) return Number(s.replace(/[.,](?=\d{3}\b)/g, ''));
+  return Number(s.replace(',', '.'));
+}
+
 function qtyCandidates(line) {
   const out = [];
   for (const it of line.items || []) {
     const s = it.s.trim();
     if (/^\d+(?:[.,]\d+)?\s*%$/.test(s)) continue;
-    const m = s.match(/^(\d+(?:[.,]\d+)?)(?:\s*(?:pcs|pc|st|stk|x|units?|kg|g|l))?$/i);
+    const m = s.match(/^(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)(?:\s*(?:pcs|pc|st|stk|x|units?|kg|g|l))?$/i);
     if (!m) continue;
-    out.push({ value: Number(m[1].replace(',', '.')), x: it.x, raw: s });
+    const value = parseQtyNumber(m[1]);
+    if (!Number.isFinite(value)) continue;
+    out.push({ value, x: it.x, raw: s });
   }
   return out;
 }
@@ -387,7 +467,10 @@ function parseDataLine(line, cols) {
   let qty = null;
   if (qtyCol) {
     const hit = [...qtyPool].sort((a, b) => Math.abs(a.x - qtyCol.x) - Math.abs(b.x - qtyCol.x))[0];
-    if (hit && Math.abs(hit.x - qtyCol.x) < 80) qty = hit.value;
+    if (hit && Math.abs(hit.x - qtyCol.x) < 80) {
+      qty = hit.value;
+      usedX.add(hit.x);
+    }
   } else {
     const bare = (line.items || []).map((it) => it.s.trim()).find((s) => /^\d+(?:\.\d+)?$/.test(s) && !isMoneyToken(s));
     if (bare != null) qty = Number(bare);
@@ -430,6 +513,7 @@ function lineItems(lines) {
     let description = parsed.description;
     if (!description && pending && !/^(this is|description\s*:|notes\s*:)/i.test(pending)) description = pending;
     pending = null;
+    if (!description) continue;
     items.push({
       description,
       quantity: parsed.quantity,
@@ -534,10 +618,11 @@ export function analyzeCommercial(layer, type) {
   let shipping = scanAmount(lines, /\b(?:shipping|freight|versand)\b/i, /ship\s*to/i, 'last');
   if (shipping != null) shipping = Math.abs(shipping);
 
-  let total = scanAmount(lines, /grand total|total due|amount due|balance due|total ttc|factuur totaal|somme à payer|total eur|\*\*\*\*\s*balance|total facture/i, /sub\s*total|total\s+ht/i, 'last');
+  let total = scanAmount(lines, /grand total|total due|amount due|total ttc|factuur totaal|somme à payer|total eur|\*\*\*\*\s*balance|total facture/i, /sub\s*total|total\s+ht|balance due|change due/i, 'last');
   if (total == null) total = scanAmount(lines, /\btotaal\b/i, /sub/i, 'last');
-  if (total == null) total = scanAmount(lines, /\btotal\b/i, /sub\s*total|total\s+ht|total\s+hors|exclusief|total facture/i, 'last');
+  if (total == null) total = scanAmount(lines, /\btotal\b/i, /sub\s*total|total\s+ht|total\s+hors|exclusief|total facture|balance due|change due/i, 'last');
   if (total == null && table?.total != null) total = table.total;
+  if (total == null) total = scanAmount(lines, /balance due|change due|amount remaining/i, /sub\s*total/i, 'last');
 
   if (subtotal == null && total != null && (tax == null || tax === 0) && discount == null && shipping == null) subtotal = total;
 
@@ -574,14 +659,22 @@ export function analyzeCommercial(layer, type) {
   let status = 'incomplete';
   if (applicable.length) status = applicable.every((c) => c.status === 'pass') ? 'pass' : 'fail';
 
-  const vendor = vendorName(lines, text);
+  const party = parties(lines, type);
+  const named = vendorName(lines, text);
+  // Purchase orders print the buyer in the letterhead and the seller on a Vendor label.
+  // Other documents keep the letterhead / ordered-through name; a label is only the fallback.
+  let vendor = named || null;
+  if (type === 'purchase_order' && party.vendorLabeled && party.vendorName) vendor = party.vendorName;
+  else if (!vendor && party.vendorLabeled) vendor = party.vendorName;
   const number = type === 'purchase_order' ? poNumber(lines) : type === 'receipt' ? null : invoiceNumber(lines, text);
   const issuedDate = findIssued(lines, text, type, order);
   const dueDate = type === 'invoice' ? findDue(lines, text, order) : null;
   const currency = detectCurrency(text);
 
   const fields = {
-    vendor_name: field(vendor, 0.8, 'header'),
+    vendor_name: field(vendor, party.vendorLabeled ? 0.9 : 0.8, party.vendorLabeled ? 'label' : 'header'),
+    buyer_name: field(party.buyerName, party.buyerSource === 'label' ? 0.85 : 0.7, party.buyerSource),
+    ...(party.shipTo ? { ship_to: field(party.shipTo, 0.85, 'label') } : {}),
     currency: field(currency, currency ? 0.9 : 0.3, 'text'),
     ...(type === 'purchase_order'
       ? { po_number: field(number, 0.93, 'label'), po_date: field(issuedDate, 0.9, 'label') }
@@ -607,6 +700,8 @@ export function analyzeCommercial(layer, type) {
     summary: {
       document_type: type,
       number,
+      vendor,
+      buyer: party.buyerName,
       total,
       subtotal,
       tax,

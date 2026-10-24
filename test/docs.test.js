@@ -38,3 +38,13 @@ test('receipt and purchase order', async () => {
   assert.equal(po.fields.po_number.value, 'PO-55120');
   assert.equal(po.checks.status, 'pass');
 });
+
+test('invoice buyer from "To:" block; PO buyer from header, vendor from label', async () => {
+  const { extractDocument } = await import('../src/extract.js');
+  const { readFileSync } = await import('node:fs');
+  const inv = await extractDocument(readFileSync(new URL('./fixtures/invoice-two-line-rows.pdf', import.meta.url)));
+  assert.equal(inv.fields.buyer_name.value, 'Test Business');
+  const po = await extractDocument(readFileSync(new URL('./fixtures/po.pdf', import.meta.url)));
+  assert.equal(po.summary.vendor, 'Steel Supply Co');
+  assert.equal(po.summary.buyer, 'Acme Fabrication Inc');
+});

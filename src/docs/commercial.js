@@ -30,6 +30,35 @@ function labelValue(lines, re) {
   return null;
 }
 
+// Value of a labeled party block ("Bill To:", "Ship To:", "Vendor:"), either inline after the label or on the
+// next line in the same column. Works when two blocks sit side by side on one row.
+function blockValue(lines, re, maxLine = 25) {
+  const top = lines.slice(0, maxLine);
+  for (let i = 0; i < top.length; i += 1) {
+    for (const it of top[i].items ?? []) {
+      const s = it.s.trim();
+      const m = s.match(re);
+      if (!m || m.index !== 0) continue;
+      const inline = s.slice(m[0].length).replace(/^[\s:#.-]+/, '').trim();
+      if (inline) return inline;
+      if (!/^[\s:]*$/.test(s.slice(m[0].length))) continue;
+      const next = top[i + 1];
+      if (!next?.items?.length) continue;
+      const below = next.items
+        .map((n) => ({ n, d: Math.abs(n.x - it.x) }))
+        .filter(({ d }) => d < 60)
+        .sort((a, b) => a.d - b.d)[0];
+      const value = below?.n.s.trim();
+      if (value && !/^\d+([.,]\d+)?$/.test(value)) return value;
+    }
+  }
+  return null;
+}
+
+const VENDOR_LABEL = /(from|seller|vendor|supplier|sold by|remit to)\b/i;
+const BUYER_LABEL = /(to(?=\s*:)|bill(ed)? to|sold to|buyer|purchaser|customer|invoice to|ordered by)\b/i;
+const SHIP_LABEL = /(ship(ped)? to|deliver(y)? to)\b/i;
+
 function summaryAmount(lines, re, skip) {
   for (let i = lines.length - 1; i >= 0; i -= 1) {
     const text = lines[i].text;
@@ -119,16 +148,27 @@ export function analyzeCommercial(layer, type) {
 
   const fromIdx = lines.slice(0, 12).findIndex((l) => /^(from|seller|vendor|supplier)\s*:?\s*$/i.test(l.items[0]?.s.trim() ?? ''));
   const headerText = (l) => (l?.items?.[0]?.s ?? l?.text ?? '').trim();
-  const vendorLine = fromIdx >= 0
+  let vendorLine = fromIdx >= 0
     ? { text: headerText(lines[fromIdx + 1]) }
     : (() => { const l = lines.slice(0, 4).find((x) => !/^(tax\s+)?(invoice|receipt|purchase order|bill to|sold to)\b/i.test(headerText(x)) && !/^[\d#]/.test(headerText(x))); return l ? { text: headerText(l) } : null; })();
+  const labeledVendor = blockValue(lines, VENDOR_LABEL);
+  if (labeledVendor && fromIdx < 0) vendorLine = { text: labeledVendor };
+  const headerIssuer = (() => { const l = lines.slice(0, 4).find((x) => !/^(tax\s+)?(invoice|receipt|purchase order|bill to|sold to|vendor|ship to)\b/i.test(headerText(x)) && !/^[\d#]/.test(headerText(x))); return l ? headerText(l) : null; })();
+  const labeledBuyer = blockValue(lines, BUYER_LABEL);
+  const shipTo = blockValue(lines, SHIP_LABEL);
+  // On a PO the issuer at the top is the buyer and the vendor is labeled; on invoices the buyer is the Bill To block.
+  const buyerName = labeledBuyer
+    ?? (type === 'purchase_order' && headerIssuer && headerIssuer !== vendorLine?.text?.trim() ? headerIssuer : null);
+  const buyerSource = labeledBuyer ? 'label' : 'header';
   const number = labelValue(lines, type === 'purchase_order' ? /p\.?o\.?\s*(number|no\.?|#)/i : type === 'receipt' ? /receipt\s*(number|no\.?|#)/i : /invoice\s*(number|no\.?|#)/i);
   const issued = labelValue(lines, type === 'purchase_order' ? /p\.?o\.?\s*date|order date|^date\b/i : /invoice date|receipt date|^date\b/i);
   const issuedDate = issued ? parseDate(issued.match(/\d{4}-\d{2}-\d{2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|[A-Z][a-z]+\.? \d{1,2},? \d{4}|\d{1,2} [A-Z][a-z]+\.? \d{4}/)?.[0] ?? issued) : null;
   const due = labelValue(lines, /due date|payment due/i);
 
   const fields = {
-    vendor_name: field(vendorLine?.text?.trim() ?? null, 0.8, 'header'),
+    vendor_name: field(vendorLine?.text?.trim() ?? null, 0.8, fromIdx >= 0 || labeledVendor ? 'label' : 'header'),
+    buyer_name: field(buyerName, buyerSource === 'label' ? 0.85 : 0.7, buyerSource),
+    ...(shipTo ? { ship_to: field(shipTo, 0.85, 'label') } : {}),
     ...(type === 'purchase_order'
       ? { po_number: field(number, 0.93, 'label'), po_date: field(issuedDate, 0.9, 'label') }
       : type === 'receipt'
@@ -153,6 +193,8 @@ export function analyzeCommercial(layer, type) {
     summary: {
       document_type: type,
       number,
+      vendor: vendorLine?.text?.trim() ?? null,
+      buyer: buyerName,
       total,
       subtotal,
       tax,

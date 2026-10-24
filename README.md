@@ -81,7 +81,7 @@ You're charged only for successful extractions. 100 bank statements cost $25, an
 - MCA and business-loan underwriting: ADB, NSF count, true revenue, existing positions and holdback in one pass
 - Spotting stacked MCAs and missed or bounced payments before funding
 - Flagging edited or doctored statements for manual review
-- Accounts payable automation: invoice, PO and receipt fields plus line items into your ERP or spreadsheet
+- Accounts payable automation: invoice, PO and receipt fields (vendor, buyer, ship-to, numbers, dates, totals) plus line items into your ERP or spreadsheet
 - Vendor onboarding: pulling W-9 name, business name, tax classification, address and EIN (or SSN last 4) from fillable or flattened digital W-9s
 - Feeding structured financial data to AI agents through the Apify API or MCP server
 

@@ -1,4 +1,4 @@
-# 📄 PDF Data Extractor: Invoices, Receipts, W-9 & Bank Statement Analyzer
+# 📄 PDF Data Extractor: Invoices, W-9s & Bank Statements
 
 **Drop in a PDF URL, get clean JSON back.** Invoices, receipts, purchase orders, W-9s and bank statements, with no templates to build and no OCR guesswork. Bank-statement mode goes further: every transaction categorized, a pass/fail reconciliation, true revenue, and MCA positions with missed and bounced payments, all for **$0.25 per statement**.
 

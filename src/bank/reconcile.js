@@ -76,9 +76,13 @@ export function reconcile({ opening, ending, printedCredits, printedDebits, tran
     runningStatus = breaks.length ? 'fail' : 'pass';
   }
 
+  // A clean pass requires opening + credits − debits = closing. Matching a printed
+  // credit total alone is not enough, and that statement must not be billed as clean.
+  // A missing running balance stays incomplete on its own check and can still pass here.
+  const equation = summaryChecks.find((c) => c.name === 'opening_plus_transactions_equals_ending');
   let status = 'incomplete';
   if (summaryStatus === 'fail' || runningStatus === 'fail') status = 'fail';
-  else if (summaryStatus === 'pass') status = 'pass';
+  else if (summaryStatus === 'pass' && equation?.status === 'pass') status = 'pass';
 
   return {
     status,

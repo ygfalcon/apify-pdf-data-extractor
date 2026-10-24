@@ -14,7 +14,17 @@ test('pay-per-event prices and event names stay unchanged', () => {
   assert.equal(chargeEvent('bank_statement', 'bank_statement'), 'bank-statement');
   assert.equal(chargeEvent('bank_statement', 'invoice'), 'document');
   assert.equal(chargeEvent('preview', 'bank_statement'), null);
-  assert.equal(isBillable({ document_type: 'bank_statement' }), true);
+  assert.equal(isBillable({ document_type: 'bank_statement', fields: { opening_balance: { value: 250 } } }), false);
+  assert.equal(isBillable({
+    document_type: 'bank_statement',
+    reconciliation_status: 'pass',
+    reconciliation: {
+      status: 'pass',
+      summary_totals: { checks: [{ name: 'opening_plus_transactions_equals_ending', status: 'pass' }] },
+    },
+    transactions: [{ amount: 1 }],
+  }), true);
+  assert.equal(isBillable({ document_type: 'bank_statement' }), false);
   assert.equal(isBillable({ error: 'nope', scanned: true }), false);
 });
 

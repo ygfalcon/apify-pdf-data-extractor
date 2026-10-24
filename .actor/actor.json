@@ -2,7 +2,7 @@
   "actorSpecification": 1,
   "name": "pdf-data-extractor-bank-statements",
   "title": "PDF Data Extractor: Invoices, W-9s & Bank Statements",
-  "description": "Turn digital PDFs into JSON: invoices, receipts, POs, W-9s & bank statements. Bank mode: every transaction categorized, pass/fail reconciliation, true revenue, MCA stacking with missed/bounced payments, tamper flags. $0.03/doc, $0.25/statement. Scans never charged.",
+  "description": "Turn digital PDFs into JSON: invoices, receipts, POs, W-9s & bank statements. Bank mode: every transaction categorized, pass/fail reconciliation, true revenue, MCA stacking with missed/bounced payments, tamper flags. $0.029/doc, $0.24/statement. Scans never charged.",
   "version": "1.1",
   "buildTag": "latest",
   "meta": {

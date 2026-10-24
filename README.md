@@ -15,7 +15,7 @@
 - 🗂️ **102 transaction categories** in groups such as revenue, payroll, financing in and out, and NSF fees.
 - 🕵️ **Tamper flags.** Editing-software metadata, a file modified long after it was created, unusual font counts and many round-dollar deposits are flagged.
 - 🧾 **Invoice math checks.** Quantity × unit price, line items vs. subtotal, and subtotal − discount + tax vs. total each come back `pass`, `fail` or `incomplete`.
-- 🆓 **Pay only for results.** Failed downloads, non-PDFs and scanned image-only PDFs cost nothing. Preview mode is free.
+- 🆓 **Pay only for results.** Failed downloads, non-PDFs, blank W-9s and scanned image-only PDFs cost nothing. Preview mode is free.
 - ⚡ **Fast and text-layer native.** It reads the PDF's embedded text directly, with no OCR step to drift on fonts or image quality.
 
 ## ⚡ Quick start
@@ -82,7 +82,7 @@ You're charged only for successful extractions. 100 bank statements cost $25, an
 - Spotting stacked MCAs and missed or bounced payments before funding
 - Flagging edited or doctored statements for manual review
 - Accounts payable automation: invoice, PO and receipt fields plus line items into your ERP or spreadsheet
-- Vendor onboarding: pulling W-9 fields into your records
+- Vendor onboarding: pulling W-9 name, business name, tax classification, address and EIN (or SSN last 4) from fillable or flattened digital W-9s
 - Feeding structured financial data to AI agents through the Apify API or MCP server
 
 ## 🔍 What's in a bank-statement result

@@ -2,6 +2,7 @@ import { analyzeStatement } from './bank/analyze.js';
 import { chargeEvent, isBillable } from './charge.js';
 import { classify } from './classify.js';
 import { analyzeCommercial } from './docs/commercial.js';
+import { analyzeW9 } from './docs/w9.js';
 import { isScanned, readTextLayer } from './lib/text-layer.js';
 
 const SCANNED_NOTE = 'Scanned or image-only PDF. Digital text-layer PDFs only; this file was not charged.';
@@ -57,7 +58,8 @@ export async function extractDocument(buffer, opts = {}) {
   else if (type === 'invoice' || type === 'receipt' || type === 'purchase_order') {
     body = analyzeCommercial(layer, type);
     if (body.weak) body = await fallbackExtract(buffer, { ...opts, mode, type });
-  } else body = await fallbackExtract(buffer, { ...opts, mode, type });
+  } else if (type === 'w9') body = analyzeW9(layer);
+  else body = await fallbackExtract(buffer, { ...opts, mode, type });
 
   if (body?.method === 'vision' || body?.vision_unavailable || body?.vision_error || body?.scanned) {
     return { ...scannedResult(layer.pageCount), elapsed_ms: Date.now() - started };

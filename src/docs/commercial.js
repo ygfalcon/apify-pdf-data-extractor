@@ -43,20 +43,29 @@ function summaryAmount(lines, re, skip) {
 }
 
 function lineItems(lines) {
-  const header = lines.findIndex((l) => /description/i.test(l.text) && /(qty|quantity|amount|price)/i.test(l.text));
+  const header = lines.findIndex((l) => /description|service|\bitems?\b|product/i.test(l.text) && /(qty|quantity|amount|price|rate)/i.test(l.text));
   if (header < 0) return [];
   const items = [];
+  let pending = [];
   for (const line of lines.slice(header + 1)) {
     if (/sub\s*total|\btax\b|\bvat\b|\bgst\b|^total\b|amount due|balance due/i.test(line.text)) break;
-    const moneys = moneyItems(line);
-    if (!moneys.length) continue;
-    const qty = line.items.map((it) => it.s.trim()).find((s) => /^\d+(\.\d+)?$/.test(s) && !isMoneyToken(s));
-    const description = line.items
+    let moneys = moneyItems(line);
+    if (!moneys.length) { pending.push(line.text.trim()); continue; }
+    let qty = line.items.map((it) => it.s.trim()).find((s) => /^\d+(\.\d+)?$/.test(s) && !isMoneyToken(s));
+    const first = line.items[0]?.s.trim();
+    if (qty == null && moneys.length >= 3 && /^\d+(\.\d+)?$/.test(first) && moneys[0].x === line.items[0].x) {
+      qty = first;
+      moneys = moneys.slice(1);
+    }
+    let description = line.items
       .map((it) => it.s.trim())
       .filter((s) => s && !isMoneyToken(s) && s !== qty)
       .join(' ')
       .replace(/\s+/g, ' ')
+      .replace(/\b\d+(\.\d+)?%/g, '')
       .trim();
+    if (!description && pending.length) description = pending[0];
+    pending = [];
     const amount = moneys[moneys.length - 1].value;
     const unit = moneys.length > 1 ? moneys[moneys.length - 2].value : null;
     items.push({
@@ -108,20 +117,25 @@ export function analyzeCommercial(layer, type) {
   let status = 'incomplete';
   if (applicable.length) status = applicable.every((c) => c.status === 'pass') ? 'pass' : 'fail';
 
-  const vendorLine = lines.slice(0, 4).find((l) => !/invoice|receipt|purchase order|bill to/i.test(l.text));
+  const fromIdx = lines.slice(0, 12).findIndex((l) => /^(from|seller|vendor|supplier)\s*:?\s*$/i.test(l.items[0]?.s.trim() ?? ''));
+  const headerText = (l) => (l?.items?.[0]?.s ?? l?.text ?? '').trim();
+  const vendorLine = fromIdx >= 0
+    ? { text: headerText(lines[fromIdx + 1]) }
+    : (() => { const l = lines.slice(0, 4).find((x) => !/^(tax\s+)?(invoice|receipt|purchase order|bill to|sold to)\b/i.test(headerText(x)) && !/^[\d#]/.test(headerText(x))); return l ? { text: headerText(l) } : null; })();
   const number = labelValue(lines, type === 'purchase_order' ? /p\.?o\.?\s*(number|no\.?|#)/i : type === 'receipt' ? /receipt\s*(number|no\.?|#)/i : /invoice\s*(number|no\.?|#)/i);
   const issued = labelValue(lines, type === 'purchase_order' ? /p\.?o\.?\s*date|order date|^date\b/i : /invoice date|receipt date|^date\b/i);
+  const issuedDate = issued ? parseDate(issued.match(/\d{4}-\d{2}-\d{2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|[A-Z][a-z]+\.? \d{1,2},? \d{4}|\d{1,2} [A-Z][a-z]+\.? \d{4}/)?.[0] ?? issued) : null;
   const due = labelValue(lines, /due date|payment due/i);
 
   const fields = {
     vendor_name: field(vendorLine?.text?.trim() ?? null, 0.8, 'header'),
     ...(type === 'purchase_order'
-      ? { po_number: field(number, 0.93, 'label'), po_date: field(issued ? parseDate(issued) : null, 0.9, 'label') }
+      ? { po_number: field(number, 0.93, 'label'), po_date: field(issuedDate, 0.9, 'label') }
       : type === 'receipt'
-        ? { merchant_name: field(vendorLine?.text?.trim() ?? null, 0.8, 'header'), date: field(issued ? parseDate(issued) : null, 0.85, 'label') }
+        ? { merchant_name: field(vendorLine?.text?.trim() ?? null, 0.8, 'header'), date: field(issuedDate, 0.85, 'label') }
         : {
           invoice_number: field(number, 0.93, 'label'),
-          invoice_date: field(issued ? parseDate(issued) : null, 0.92, 'label'),
+          invoice_date: field(issuedDate, 0.92, 'label'),
           due_date: field(due ? parseDate(due) : null, 0.92, 'label'),
         }),
     subtotal: field(subtotal, status === 'pass' ? 0.99 : 0.6, 'label'),

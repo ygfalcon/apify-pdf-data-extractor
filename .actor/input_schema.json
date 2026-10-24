@@ -3,9 +3,60 @@
   "type": "object",
   "schemaVersion": 1,
   "properties": {
-    "pdfUrls": { "title": "PDF URLs", "type": "array", "description": "Public URLs of digital (text-based) PDFs. Scanned image-only PDFs are skipped and not charged.", "editor": "stringList", "prefill": ["https://falcondocs.vercel.app/samples/bank-statement.pdf", "https://falcondocs.vercel.app/samples/invoice.pdf"] },
-    "mode": { "title": "Mode", "type": "string", "editor": "select", "description": "extract = any digital document, auto-detected. bank_statement = transactions, pass/fail reconciliation, true revenue, and MCA positions. preview = page 1 only, free. Scanned PDFs are skipped and not charged.", "enum": ["extract", "bank_statement", "preview"], "enumTitles": ["Extract any document ($0.03 / document)", "Bank statement analysis ($0.25 / statement)", "Preview page 1 (free)"], "default": "extract" },
-    "documentType": { "title": "Document type (extract mode)", "type": "string", "editor": "select", "description": "Leave on auto to detect it.", "enum": ["auto", "invoice", "receipt", "purchase_order", "w9", "bank_statement", "generic"], "default": "auto" }
+    "pdfUrls": {
+      "title": "PDF URLs",
+      "type": "array",
+      "description": "Public links to digital (text-based) PDFs, one per line: invoices, receipts, purchase orders, W-9s or bank statements. Two free samples are prefilled. Scanned image-only PDFs are skipped and never charged.",
+      "editor": "stringList",
+      "prefill": [
+        "https://falcondocs.vercel.app/samples/bank-statement.pdf",
+        "https://falcondocs.vercel.app/samples/invoice.pdf"
+      ]
+    },
+    "mode": {
+      "title": "Mode",
+      "type": "string",
+      "editor": "select",
+      "description": "Extract: any document, type auto-detected ($0.03). Bank statement: every transaction, pass/fail reconciliation, true revenue, ADB, NSF and MCA positions ($0.25). Preview: page 1 only, free, good for testing.",
+      "enum": [
+        "extract",
+        "bank_statement",
+        "preview"
+      ],
+      "enumTitles": [
+        "Extract any document ($0.03 / document)",
+        "Bank statement analysis ($0.25 / statement)",
+        "Preview page 1 (free)"
+      ],
+      "default": "extract"
+    },
+    "documentType": {
+      "title": "Document type (extract mode)",
+      "type": "string",
+      "editor": "select",
+      "description": "Used in Extract mode. Leave on Auto-detect unless you want to force a document type.",
+      "enum": [
+        "auto",
+        "invoice",
+        "receipt",
+        "purchase_order",
+        "w9",
+        "bank_statement",
+        "generic"
+      ],
+      "default": "auto",
+      "enumTitles": [
+        "Auto-detect",
+        "Invoice",
+        "Receipt",
+        "Purchase order",
+        "W-9",
+        "Bank statement",
+        "Other / generic"
+      ]
+    }
   },
-  "required": ["pdfUrls"]
+  "required": [
+    "pdfUrls"
+  ]
 }

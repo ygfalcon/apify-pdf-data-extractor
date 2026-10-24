@@ -2,7 +2,7 @@
   "actorSpecification": 1,
   "name": "pdf-data-extractor-bank-statements",
   "title": "PDF Data Extractor: Invoices, Receipts, W-9 & Bank Statement Analyzer",
-  "description": "Extract structured data from digital PDF invoices, receipts, purchase orders, W-9s and bank statements, with no templates. Bank-statement mode returns every transaction, a pass/fail reconciliation, true revenue, a 75+ category taxonomy, MCA positions with missed and bounced payments, and tamper flags. Scanned PDFs are not supported and are not charged.",
+  "description": "Turn digital PDFs into JSON: invoices, receipts, POs, W-9s & bank statements. Bank mode: every transaction categorized, pass/fail reconciliation, true revenue, MCA stacking with missed/bounced payments, tamper flags. $0.03/doc, $0.25/statement. Scans free.",
   "version": "1.1",
   "buildTag": "latest",
   "meta": {

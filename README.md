@@ -131,3 +131,7 @@ No. It's automated extraction, so verify the output before relying on it.
 
 ---
 *Keywords: PDF to JSON, bank statement parser, bank statement analyzer, MCA underwriting, true revenue calculator, invoice OCR alternative, invoice data extraction, receipt parser, W-9 extractor, purchase order extraction, transaction categorization, average daily balance, NSF detection, statement reconciliation.*
+
+---
+
+**Built by [falcon.sol](https://x.com/ygfalcon)**: anon dev shipping pay-per-call data tools and x402 APIs for builders and agents. [X](https://x.com/ygfalcon) · [GitHub](https://github.com/ygfalcon) · [Apify](https://apify.com/falcon-sol)

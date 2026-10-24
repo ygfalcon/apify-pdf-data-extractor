@@ -107,12 +107,12 @@ test('right-aligned amount and balance columns', async () => {
   assert.equal(result.reconciliation.status, 'pass');
 });
 
-test('amount-only statement passes the summary and leaves running balance incomplete', async () => {
+test('amount-only statement passes on the summary when no running balance is printed', async () => {
   const result = await analyze(AMOUNT_ONLY);
   assertLedger(result, AMOUNT_ONLY);
   assert.equal(result.reconciliation.summary_totals.status, 'pass');
   assert.equal(result.reconciliation.running_balance.status, 'incomplete');
-  assert.equal(result.reconciliation.status, 'incomplete');
+  assert.equal(result.reconciliation.status, 'pass');
   assert.equal(result.summary.true_revenue, 100);
 });
 

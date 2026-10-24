@@ -23,10 +23,10 @@ test('running balance failure does not rewrite a passing summary', () => {
   assert.equal(result.running_balance.breaks[0].date, '2026-01-02');
 });
 
-test('missing running balances cannot pass', () => {
+test('a passing summary passes when no running balance is printed', () => {
   const noBalance = txns.map((t) => ({ ...t, balance: null }));
   const result = reconcile({ opening: 100, ending: 160, printedCredits: 100, printedDebits: 40, transactions: noBalance });
   assert.equal(result.summary_totals.status, 'pass');
   assert.equal(result.running_balance.status, 'incomplete');
-  assert.equal(result.status, 'incomplete');
+  assert.equal(result.status, 'pass');
 });

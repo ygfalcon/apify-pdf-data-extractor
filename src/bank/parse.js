@@ -49,7 +49,7 @@ function headerKey(text) {
   if (/description|details|narrative|\bmemo\b|particular/i.test(t)) return 'description';
   if (/withdraw|debit|subtraction|money out/i.test(t)) return 'debit';
   if (/deposit|credit|addition|money in/i.test(t)) return 'credit';
-  if (/\bbalance\b/i.test(t)) return 'balance';
+  if (/ending daily|\bbalance\b/i.test(t)) return 'balance';
   if (/\bamount\b/i.test(t)) return 'amount';
   if (/^(check|number|num|no\.?|#)$/i.test(t)) return 'check';
   return null;
@@ -119,15 +119,25 @@ function isSummaryLine(line) {
   if (leadingDateToken(line)) return false;
   if (summaryAmounts(line).length !== 1) return false;
   const label = line.text.toLowerCase();
-  return /(beginning|opening|previous|starting|prior|ending|closing|new|current) balance|total (deposits|credits|withdrawals|debits)|deposits and (other )?(credits|additions)|withdrawals and (other )?debits|total (additions|subtractions)|service (charge|fee)|checks paid|other (withdrawals|debits)/.test(label);
+  return /(beginning|opening|previous|starting|prior|ending|closing|new|current) balance|total .*?\b(deposits|credits|withdrawals|debits|additions)\b|electronic withdrawals|deposits\s*\/\s*credits|withdrawals\s*\/\s*debits|deposits and (other )?(credits|additions)|withdrawals and (other )?debits|total (additions|subtractions)|service (charge|fee)|checks paid|other (withdrawals|debits)/.test(label);
+}
+
+function isBannerLine(line) {
+  if (moneyItems(line).length || !leadingDateToken(line)) return false;
+  const t = line.text;
+  if (/\bpage\s+\d+\s+of\s+\d+\b/i.test(t)) return true;
+  return /\b(?:through|thru|to)\b/i.test(t) && (t.match(/\d{4}/g) || []).length >= 2;
 }
 
 function sectionOf(line) {
-  if (moneyItems(line).length || leadingDateToken(line)) return null;
+  if (moneyItems(line).length || findMoney(line.text).length || leadingDateToken(line)) return null;
   const t = line.text.trim();
+  if (/\b(total|balance|summary|page|history|activity)\b/i.test(t)) return null;
   if (/^(deposits?( and (credits|additions))?|credits and deposits|additions)$/i.test(t)) return 'credit';
-  if (/^(withdrawals?( and (debits|subtractions))?|debits|subtractions|other withdrawals|service charges?|fees)$/i.test(t)) return 'debit';
+  if (/^(withdrawals?( and (debits|subtractions))?|debits|subtractions|other withdrawals|service charges?|fees|electronic withdrawals)$/i.test(t)) return 'debit';
   if (/^checks( paid)?$/i.test(t)) return 'checks';
+  if (t.split(/\s+/).length <= 4 && /withdrawals?|debits?/i.test(t)) return 'debit';
+  if (t.split(/\s+/).length <= 4 && /deposits?|credits?|additions?/i.test(t)) return 'credit';
   return null;
 }
 
@@ -139,8 +149,8 @@ function printedTotals(lines) {
     const label = line.text.toLowerCase();
     if (out.opening == null && /(beginning|opening|previous|starting|prior) balance/.test(label)) out.opening = value;
     else if (out.ending == null && /(ending|closing|new|current) balance/.test(label)) out.ending = value;
-    else if (out.credits == null && /(total (deposits|credits)|deposits and (other )?(credits|additions)|total additions)/.test(label)) out.credits = Math.abs(value);
-    else if (out.debits == null && /(total (withdrawals|debits)|withdrawals and (other )?debits|total subtractions)/.test(label)) out.debits = Math.abs(value);
+    else if (out.credits == null && /(total .*?\b(deposits|credits|additions)\b|deposits\s*\/\s*credits|deposits and (other )?(credits|additions)|total additions)/.test(label)) out.credits = Math.abs(value);
+    else if (out.debits == null && /(total .*?\b(withdrawals|debits)\b|electronic withdrawals|withdrawals\s*\/\s*debits|withdrawals and (other )?debits|total subtractions)/.test(label)) out.debits = Math.abs(value);
     else if (out.fees == null && /service (charge|fee)|total fees/.test(label)) out.fees = Math.abs(value);
     else if (out.checks == null && /checks paid/.test(label)) out.checks = Math.abs(value);
     else if (out.other == null && /other (withdrawals|debits)/.test(label)) out.other = Math.abs(value);
@@ -263,6 +273,7 @@ export function parseStatement(layer) {
 
   for (const line of lines) {
     if (/^page \d+(\s+of\s+\d+)?$/i.test(line.text.trim())) continue;
+    if (isBannerLine(line)) continue;
     const header = detectHeader(line);
     if (header) {
       columns = header;

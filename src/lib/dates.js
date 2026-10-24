@@ -1,6 +1,16 @@
 const MONTHS = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+  jan: 1, january: 1,
+  feb: 2, february: 2, fevrier: 2, februar: 2,
+  mar: 3, march: 3, mars: 3, maart: 3, marz: 3,
+  apr: 4, april: 4, avril: 4,
+  may: 5, mai: 5, mei: 5,
+  jun: 6, june: 6, juni: 6, juin: 6,
+  jul: 7, july: 7, juli: 7, juillet: 7,
+  aug: 8, august: 8, aout: 8,
+  sep: 9, sept: 9, september: 9, septembre: 9,
+  oct: 10, october: 10, oktober: 10, octobre: 10,
+  nov: 11, november: 11, novembre: 11,
+  dec: 12, december: 12, dezember: 12, decembre: 12,
 };
 
 export function toIso(year, month, day) {
@@ -57,8 +67,30 @@ export function missedBusinessDays(prev, next) {
   return missed;
 }
 
+function fold(text) {
+  return String(text ?? '').normalize('NFD').replace(/\p{M}/gu, '');
+}
+
 function monthIndex(name) {
-  return MONTHS[String(name || '').slice(0, 3).toLowerCase()] ?? null;
+  const key = fold(name).toLowerCase().replace(/\./g, '');
+  if (Object.prototype.hasOwnProperty.call(MONTHS, key)) return MONTHS[key];
+  const three = key.slice(0, 3);
+  return Object.prototype.hasOwnProperty.call(MONTHS, three) ? MONTHS[three] : null;
+}
+
+/** European documents (factuur, facture, rechnung, €) read ambiguous dates as day/month. */
+export function inferDateOrder(text) {
+  const t = String(text ?? '');
+  if (/factuur|facture|rechnung|rechnungs|factuurnummer|rechnungsnr|\bbtw\b|\btva\b|\bmwst\b|€/i.test(t)) return 'dmy';
+  return 'mdy';
+}
+
+function cleanDateText(input) {
+  return fold(input)
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\s+,/g, ',')
+    .replace(/([A-Za-z])\./g, '$1');
 }
 
 function withinPeriod(iso, period) {
@@ -81,55 +113,65 @@ function inferYear(month, day, period) {
   return toIso(candidates[0], month, day);
 }
 
-export function parseDate(input, period = null) {
-  const t = String(input ?? '').trim().replace(/\./g, '');
+function numericParts(a, b, order) {
+  let month = a;
+  let day = b;
+  if (order === 'dmy') { day = a; month = b; }
+  if (month > 12 && day <= 12) [month, day] = [day, month];
+  return { month, day };
+}
+
+export function parseDate(input, period = null, order = 'mdy') {
+  const t = cleanDateText(input);
   if (!t) return null;
   let m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) return toIso(+m[1], +m[2], +m[3]);
-  m = t.match(/^([A-Za-z]{3,9})\s+(\d{1,2}),?\s+(\d{4})$/);
+  m = t.match(/^([A-Za-z]{3,12})\s+(\d{1,2}),?\s+(\d{4})$/);
   if (m) return toIso(+m[3], monthIndex(m[1]), +m[2]);
-  m = t.match(/^(\d{1,2})\s+([A-Za-z]{3,9}),?\s+(\d{4})$/);
+  m = t.match(/^(\d{1,2})\.?\s+([A-Za-z]{3,12}),?\s+(\d{4})$/);
   if (m) return toIso(+m[3], monthIndex(m[2]), +m[1]);
-  m = t.match(/^([A-Za-z]{3,9})\s+(\d{1,2})$/);
+  m = t.match(/^([A-Za-z]{3,12})\s+(\d{1,2})$/);
   if (m) return inferYear(monthIndex(m[1]), +m[2], period);
-  m = t.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+  m = t.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})$/);
   if (m) {
     let year = +m[3];
     if (year < 100) year += 2000;
-    let month = +m[1];
-    let day = +m[2];
-    if (month > 12 && day <= 12) [month, day] = [day, month];
-    return toIso(year, month, day);
+    const parts = numericParts(+m[1], +m[2], order);
+    return toIso(year, parts.month, parts.day);
   }
   m = t.match(/^(\d{1,2})[/-](\d{1,2})$/);
   if (m) {
-    let month = +m[1];
-    let day = +m[2];
-    if (month > 12 && day <= 12) [month, day] = [day, month];
-    return inferYear(month, day, period);
+    const parts = numericParts(+m[1], +m[2], order);
+    return inferYear(parts.month, parts.day, period);
   }
   return null;
 }
 
-const DATE_TOKEN = /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?|[A-Za-z]{3,9}\.?\s+\d{1,2}(?:,?\s+\d{4})?|\d{1,2}\s+[A-Za-z]{3,9}\.?,?(?:\s+\d{4})?)$/;
-const MONTH_WORD = /^(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*$/i;
+const DATE_TOKEN = /^(?:\d{4}-\d{2}-\d{2}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}|\d{1,2}[/-]\d{1,2}|[A-Za-z]{3,12}\.?\s+\d{1,2}\s*,?\s*(?:\d{4})?|\d{1,2}\.?\s+[A-Za-z]{3,12}\.?,?\s*(?:\d{4})?)$/;
 
 export function isDateToken(raw) {
-  const t = String(raw ?? '').trim().replace(/\s+/g, ' ').replace(/\./g, '');
+  const t = cleanDateText(raw);
   if (!DATE_TOKEN.test(t)) return false;
   const leadingMonth = t.match(/^([A-Za-z]+)\s+\d/);
-  if (leadingMonth && !MONTH_WORD.test(leadingMonth[1])) return false;
-  const trailingMonth = t.match(/^\d{1,2}\s+([A-Za-z]+)/);
-  if (trailingMonth && !MONTH_WORD.test(trailingMonth[1])) return false;
+  if (leadingMonth && monthIndex(leadingMonth[1]) == null) return false;
+  const trailingMonth = t.match(/^\d{1,2}\.?\s+([A-Za-z]+)/);
+  if (trailingMonth && monthIndex(trailingMonth[1]) == null) return false;
   return true;
 }
 
 export function parsePeriod(lines) {
   const text = lines.filter((l) => l.page === 1).slice(0, 40).map((l) => l.text).join('\n');
-  const re = /([A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4})\s*(?:-|–|—|\bto\b|\bthrough\b|\bthru\b)\s*([A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4})/i;
+  const re = /([A-Za-z]{3,12}\.?\s+\d{1,2}\s*,?\s+\d{4}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\s*(?:-|–|—|\bto\b|\bthrough\b|\bthru\b)\s*([A-Za-z]{3,12}\.?\s+\d{1,2}\s*,?\s+\d{4}|\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})/i;
   const m = text.match(re);
-  if (!m) return { start: null, end: null };
-  return { start: parseDate(m[1].replace(/\s+/g, ' ')), end: parseDate(m[2].replace(/\s+/g, ' ')) };
+  if (m) return { start: parseDate(m[1].replace(/\s+/g, ' ')), end: parseDate(m[2].replace(/\s+/g, ' ')) };
+  const begin = text.match(/beginning balance on\s+(\d{1,2}\/\d{1,2})\b/i);
+  const end = text.match(/ending balance on\s+(\d{1,2}\/\d{1,2})\b/i);
+  const stamp = text.match(/\b([A-Za-z]{3,12}\s+\d{1,2}\s*,\s*\d{4})\b/);
+  if (begin && end && stamp) {
+    const year = stamp[1].match(/\d{4}/)[0];
+    return { start: parseDate(`${begin[1]}/${year}`), end: parseDate(`${end[1]}/${year}`) };
+  }
+  return { start: null, end: null };
 }
 
 export function eachDate(start, end) {

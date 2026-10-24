@@ -2,8 +2,8 @@ import { moneyEq, round2 } from '../lib/money.js';
 
 /**
  * Pass/fail reconciliation against the statement summary and the running balance.
- * status is pass only when both checks pass. A missing running balance or a missing
- * summary equation is incomplete, so it cannot pass.
+ * status is fail when either check fails. A summary that matches passes even when
+ * the statement prints no running balance (that sub-check stays incomplete).
  */
 export function reconcile({ opening, ending, printedCredits, printedDebits, transactions }) {
   const credits = round2(transactions.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0)) ?? 0;
@@ -77,8 +77,8 @@ export function reconcile({ opening, ending, printedCredits, printedDebits, tran
   }
 
   let status = 'incomplete';
-  if (summaryStatus === 'pass' && runningStatus === 'pass') status = 'pass';
-  else if (summaryStatus === 'fail' || runningStatus === 'fail') status = 'fail';
+  if (summaryStatus === 'fail' || runningStatus === 'fail') status = 'fail';
+  else if (summaryStatus === 'pass') status = 'pass';
 
   return {
     status,
